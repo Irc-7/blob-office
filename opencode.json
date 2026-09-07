@@ -1,8 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["robo-office-visualiser"],
-  "name": "robo-office-visualiser",
+  "plugin": ["blob-office"],
+  "name": "blob-office",
   "version": "1.0.0",
-  "description": "Multi-Agent Pixel Art Spatial Visualiser for OpenCode and Agent Frameworks",
+  "description": "Blob Office: OpenCode Session & Multi-Agent Character Visualizer",
   "entrypoint": "http://localhost:5173"
 }

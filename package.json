@@ -1,7 +1,7 @@
 {
-  "name": "robo-office-visualiser",
+  "name": "blob-office",
   "version": "1.0.0",
-  "description": "Multi-Agent Pixel Art Spatial Visualiser",
+  "description": "OpenCode Session & Multi-Agent Character Visualizer",
   "private": true,
   "type": "module",
   "scripts": {

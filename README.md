@@ -1,167 +1,91 @@
-# ROBO-OFFICE: Multi-Agent Pixel Art Spatial Visualiser
+# 🏢 Blob Office: OpenCode Session Character Visualizer
 
-Lightweight, role-based 2D top-down / isometric pixel art workspace and telemetry visualizer for autonomous AI agent pipelines.
+Visualizer sesi AI coding dan multi-agent berbasis procedural blob character, terinspirasi oleh arsitektur Session-Character-Visualizer (Caffa).
 
-![Robo-Office Workspace](/assets/background.png)
-
-## Overview & Concept
-
-`robo-office-visualiser` renders a cozy miniature robot workshop where each autonomous agent is represented as a chibi robot occupying a dedicated workstation based on their role (`Server`, `Frontend`, `OCModule`, `Design`, `Orchestrator`).
-
-Workstations feature props matching real engineering responsibilities, connected via a central conveyor pipeline, dynamic LED visors, battery charging docks, and a glassmorphism HUD overlay.
+Setiap sesi dan agen dirender sebagai karakter blob membal (*spring physics*) dengan balon dialog status, panel kode One Dark animasi mesin tik, dan sub-agent mini yang mengorbit agen induknya.
 
 ---
 
-## System Architecture
+## Fitur Utama
 
-```
-[ AI Agents (OpenCode / LangGraph / CrewAI / AutoGen) ]
-                     |
-                     v (JSON events via WebSocket / SSE / HTTP)
-       [ EventBridge (Local Gateway / Port 5173) ]
-                     |
-       +-------------+-------------+
-       |                           |
-       v                           v
-[ Canvas 2D Renderer ]     [ HUD Telemetry Overlay ]
-(480x270 pixel-perfect)     (Glassmorphism Stats & Log)
-       |                           |
-       +-------------+-------------+
-                     |
-                     v
-  [ Browser Window / OpenCode Visualiser Tab ]
-```
+- **Fisika Organik Prosedural (p5.js):** Gerakan membal, bayangan dinamis, dan kedipan mata dengan interpolasi pegas (*spring physics*).
+- **Warna Sesi Unik Persisten:** Setiap sesi mendapatkan hue warna khas (0–360°) berbasis hash session ID.
+- **Micro-Animations Responsif Tool:**
+  - 🧠 **Thinking:** Lingkaran aura membesar lambat dan partikel bintang melayang naik.
+  - ✏️ **Editing:** Panel kode One Dark meluncur keluar dengan animasi mesin tik (*typewriter effect*) dan kursor berkedip.
+  - 📖 **Reading:** Buku membuka/menutup dan kacamata baca bergoyang saat scanning file/vektor.
+  - 💻 **Running:** Garis kecepatan (*motion streaks*) dan getaran frekuensi tinggi saat terminal dieksekusi.
+  - ⚠️ **Waiting:** Goyangan gelisah (*nervous shake*) dengan tanda tanya membal saat menunggu input atau izin user.
+  - ❌ **Error:** Mata silang `X_X`, getaran cepat, dan kilatan petir.
+  - 💤 **Idle:** Kedipan tenang dan pernapasan halus saat sesi siaga.
+- **Subagent Orbiting:** Sub-proses atau sub-agent mini (skala 60%) berputar mengorbit agen induk dengan jalur konektor visual.
+- **Dual Mode:** Otomatis mendengarkan WebSocket OpenCode (`ws://localhost:2727/ws`), dengan simulator bawaan & panel kontrol interaktif jika backend belum aktif.
 
 ---
 
-## Quick Start Guide
+## Quick Start
 
-### 1. Standalone Development
+### 1. Menjalankan di Lingkungan Lokal
 
 ```bash
-# Clone and install dependencies
+# Install dependensi
 npm install
 
-# Start Vite development server
+# Jalankan development server
 npm run dev
 ```
 
-Visit `http://localhost:5173` in your browser. Mock telemetry runs automatically if no live backend is detected, cycling all 5 agent roles through working, researching, success, and idle states.
+Buka `http://localhost:5173/` pada peramban.
 
-### 2. Build for Production
+### 2. Membangun untuk Produksi
 
 ```bash
 npm run build
 npm run preview
 ```
 
-Total build footprint is ~65 KB total assets (JS + CSS + Spritesheets), well within the 1 MB budget.
+### 3. Integrasi OpenCode Plugin
 
-### 3. OpenCode Plugin Setup
-
-Include `robo-office-visualiser` in your `opencode.json`:
+Tambahkan konfigurasi berikut pada `opencode.json`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["robo-office-visualiser"]
+  "plugin": ["blob-office"]
 }
 ```
 
 ---
 
-## Customization
+## Arsitektur Sistem
 
-### Adding or Modifying Roles
-
-Edit `src/world/WorkshopLayout.ts`:
-
-```typescript
-export const WORKSTATIONS: Record<AgentRole, WorkstationDef> = {
-  server: {
-    gridPos: { x: 1, y: 1 },
-    pixelPos: { x: 44, y: 88 },
-    props: ['server-rack', 'cooling-fan', 'ethernet-cables', 'log-monitor'],
-    ledColor: '#0ea5e9',
-    activityIndicator: 'terminal-scroll',
-  },
-  // Add new workstation definitions here
-};
-```
-
-### Palette Swapping
-
-Edit `src/core/SpriteSystem.ts`:
-
-```typescript
-export const PALETTE_MAPS = {
-  server:       { primary: '#2563eb', accent: '#60a5fa', visor: '#0ea5e9' },
-  frontend:     { primary: '#f97316', accent: '#fb923c', visor: '#f59e0b' },
-  ocmodule:     { primary: '#8b5cf6', accent: '#a78bfa', visor: '#c084fc' },
-  design:       { primary: '#ec4899', accent: '#f472b6', visor: '#fb7185' },
-  orchestrator: { primary: '#10b981', accent: '#34d399', visor: '#6ee7b7' },
-};
+```text
+OpenCode Engine / Local Agents
+       |
+       v (JSON Events via WebSocket :2727)
+  [ BlobWebSocketClient ]
+       |
+       +--------> [ BlobRenderer (p5.js) ]
+       |                 |
+[ BlobSimulator ]        +--> Radial Position & Spring Physics
+(Fallback Mock)          +--> Dynamic Speech Bubbles & Name Tags
+                         +--> One Dark Code Panel & Tool Props
 ```
 
 ---
 
-## Integration Examples
+## Pengujian & Linting
 
-### LangGraph (Python)
+```bash
+# Typecheck TypeScript
+npm run lint
 
-```python
-import asyncio
-import json
-import websockets
-
-async def emit_agent_state(agent_id, role, state, task):
-    uri = "ws://localhost:5173/ws"
-    async with websockets.connect(uri) as websocket:
-        payload = {
-            "timestamp": int(asyncio.get_event_loop().time() * 1000),
-            "agent_id": agent_id,
-            "role": role,
-            "state": state,
-            "task_summary": task,
-            "metrics": {
-                "tokens_used": 340,
-                "latency_ms": 78
-            }
-        }
-        await websocket.send(json.dumps(payload))
-```
-
-### CrewAI / AutoGen (Python)
-
-```python
-import requests
-
-def notify_visualiser(role, state, task):
-    url = "http://localhost:5173/events"
-    payload = {
-        "timestamp": 1725760000,
-        "agent_id": f"crew_{role}",
-        "role": role,
-        "state": state,
-        "task_summary": task
-    }
-    requests.post(url, json=payload, timeout=2)
+# Jalankan automated unit & benchmark tests
+npm run test
 ```
 
 ---
 
-## Performance Benchmarks
+## Lisensi
 
-| Metric | Target | Measured |
-| :--- | :--- | :--- |
-| **Total Asset Size** | < 1 MB | 65.2 KB |
-| **Internal Resolution** | 480x270 | 480x270 (CSS 2x/3x) |
-| **Canvas Frame Rate** | 30 FPS | 30 FPS solid |
-| **Idle CPU Usage** | < 1% | ~0.4% |
-| **RAM Footprint** | < 50 MB | ~32 MB |
-
----
-
-## License
-
-MIT License. Free for open source and commercial agent instrumentation.
+MIT License.
