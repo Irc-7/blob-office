@@ -1,0 +1,163 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0d0d14;
+  overflow: hidden;
+  font-family: monospace;
+  color: #fff;
+}
+
+canvas {
+  display: block;
+}
+
+/* Status Bar */
+#status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: #111120cc;
+  border-top: 1px solid #2a2a4a;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 18px;
+  font-size: 11px;
+  color: #555;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+#status-bar .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f00;
+  flex-shrink: 0;
+}
+
+#status-bar .dot.connected {
+  background: #0f0;
+  box-shadow: 0 0 6px #0f04;
+}
+
+#status-bar span {
+  color: #667;
+}
+
+#status-bar .count {
+  color: #aaa;
+}
+
+/* Empty State */
+#no-agents {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #2a2a4a;
+  font-size: 13px;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#no-agents .big {
+  font-size: 48px;
+}
+
+#no-agents.hidden {
+  display: none;
+}
+
+/* Interactive Blob Controller Overlay */
+.blob-control-panel {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  background: rgba(17, 17, 32, 0.85);
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+}
+
+.panel-header {
+  font-size: 11px;
+  font-weight: bold;
+  color: #818cf8;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #2a2a4a;
+  padding-bottom: 4px;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.panel-row select {
+  background: #1e1e38;
+  border: 1px solid #333355;
+  color: #e2e8f0;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.panel-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.panel-buttons button {
+  background: #1e1e38;
+  border: 1px solid #333355;
+  color: #cbd5e1;
+  font-size: 9px;
+  padding: 4px 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: monospace;
+  transition: background 0.15s;
+}
+
+.panel-buttons button:hover {
+  background: #312e81;
+  color: #fff;
+}
+
+.panel-subagent button {
+  width: 100%;
+  background: #0284c7;
+  border: none;
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.panel-subagent button:hover {
+  background: #0369a1;
+}

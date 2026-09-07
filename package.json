@@ -1,0 +1,23 @@
+{
+  "name": "robo-office-visualiser",
+  "version": "1.0.0",
+  "description": "Multi-Agent Pixel Art Spatial Visualiser",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/p5": "^1.7.7",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  },
+  "dependencies": {
+    "p5": "^2.3.3"
+  }
+}
