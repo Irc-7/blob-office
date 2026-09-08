@@ -23,6 +23,7 @@ export class BlobWebSocketClient {
   private onStatusChange: (status: 'connected' | 'reconnecting' | 'closed') => void;
   private onHandoff?: (handoff: PipelineHandoffEvent) => void;
   private onAgentStateChange?: (agentId: string, state: string, message?: string) => void;
+  private onLog?: (log: { source: string; level: string; message: string }) => void;
   private reconnectTimer: number | null = null;
 
   constructor(
@@ -33,6 +34,7 @@ export class BlobWebSocketClient {
       room?: string;
       onHandoff?: (handoff: PipelineHandoffEvent) => void;
       onAgentStateChange?: (agentId: string, state: string, message?: string) => void;
+      onLog?: (log: { source: string; level: string; message: string }) => void;
     }
   ) {
     if (url) {
@@ -54,6 +56,7 @@ export class BlobWebSocketClient {
     this.onStatusChange = onStatusChange || (() => {});
     this.onHandoff = options?.onHandoff;
     this.onAgentStateChange = options?.onAgentStateChange;
+    this.onLog = options?.onLog;
   }
 
   public connect(): void {
@@ -92,6 +95,8 @@ export class BlobWebSocketClient {
           } else if (data.type === 'AGENT_STATE_CHANGE' && data.data && this.onAgentStateChange) {
             const { agent_id, state, message } = data.data;
             this.onAgentStateChange(agent_id, state, message);
+          } else if (data.type === 'LOG' && data.data && this.onLog) {
+            this.onLog(data.data);
           }
         } catch {
           // ignore malformed frame

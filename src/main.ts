@@ -51,6 +51,100 @@ class BlobOfficeApp {
     }, 1200);
   }
 
+  private hexToHue(hex: string): number {
+    if (!hex) return 210;
+    let clean = hex.replace('#', '');
+    if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
+    const r = parseInt(clean.substring(0, 2), 16) / 255;
+    const g = parseInt(clean.substring(2, 4), 16) / 255;
+    const b = parseInt(clean.substring(4, 6), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    if (max === min) h = 0;
+    else if (max === r) h = (60 * ((g - b) / (max - min)) + 360) % 360;
+    else if (max === g) h = 60 * ((b - r) / (max - min)) + 120;
+    else if (max === b) h = 60 * ((r - g) / (max - min)) + 240;
+    return Math.round(h);
+  }
+
+  private async loadRoomAgents(room: string): Promise<void> {
+    const defaultDetails: Record<string, { status: any; message: string }> = {
+      'flow-automator': { status: 'idle', message: 'Antrean 30 prompt · Standby batch 02:00' },
+      'cloud-upscaler': { status: 'idle', message: '43 aset 16.7MP tersimpan di staging' },
+      'iptc-curator': { status: 'idle', message: '30 aset terkurasi (35-45 tag komersial)' },
+      'sftp-dispatcher': { status: 'idle', message: 'Gateway sftp.contributor.adobestock.com online' },
+    };
+
+    try {
+      const res = await fetch(`/automations/${room}/manifest.json`);
+      if (res.ok) {
+        const manifest = await res.json();
+        if (manifest.agents && Array.isArray(manifest.agents)) {
+          const agents: BlobAgentData[] = manifest.agents.map((ag: any) => {
+            const def = defaultDetails[ag.id] || { status: 'idle', message: `Standby · ${ag.role}` };
+            return {
+              id: ag.id,
+              folder: ag.id.replace(/^[a-z]+-/, ''),
+              title: ag.name,
+              status: def.status,
+              message: def.message,
+              color: this.hexToHue(ag.avatar_color),
+              activityScale: 1.0,
+            };
+          });
+          this.simulator.setAgents(agents);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Fallback for adobe-stock if fetch fails
+    if (room === 'adobe-stock') {
+      const stockDefaults: BlobAgentData[] = [
+        {
+          id: 'flow-automator',
+          folder: 'flow-cdp',
+          title: 'Flow CDP Runner',
+          status: 'idle',
+          message: 'Antrean 30 prompt · Standby batch 02:00',
+          color: 160,
+          activityScale: 1.0,
+        },
+        {
+          id: 'cloud-upscaler',
+          folder: 'upscaler',
+          title: 'Resolution Booster',
+          status: 'idle',
+          message: '43 aset 16.7MP tersimpan di staging',
+          color: 190,
+          activityScale: 1.0,
+        },
+        {
+          id: 'iptc-curator',
+          folder: 'iptc-curator',
+          title: 'IPTC Specialist',
+          status: 'idle',
+          message: '30 aset terkurasi (35-45 tag komersial)',
+          color: 38,
+          activityScale: 1.0,
+        },
+        {
+          id: 'sftp-dispatcher',
+          folder: 'sftp-gw',
+          title: 'Adobe Stock Gateway',
+          status: 'idle',
+          message: 'Gateway sftp.contributor.adobestock.com online',
+          color: 265,
+          activityScale: 1.0,
+        },
+      ];
+      this.simulator.setAgents(stockDefaults);
+    }
+  }
+
   public init(): void {
     this.wsDot = document.getElementById('ws-dot')!;
     this.wsLabel = document.getElementById('ws-label')!;
@@ -60,6 +154,8 @@ class BlobOfficeApp {
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const isEmbedded = typeof window !== 'undefined' && (window.self !== window.top || urlParams.get('hideControl') === 'true');
 
+    const room = urlParams.get('room') || (isEmbedded ? 'adobe-stock' : '');
+
     if (!isEmbedded) {
       this.renderControlPanel();
     }
@@ -68,6 +164,13 @@ class BlobOfficeApp {
     this.simulator = new BlobSimulator((agentsList) => {
       this.updateAgentSnapshot(agentsList);
     });
+
+    // When room is specified (e.g. adobe-stock), load real agents and DO NOT run fake tick simulator
+    if (room) {
+      this.loadRoomAgents(room);
+    } else {
+      this.simulator.start();
+    }
 
     // 2. Setup WebSocket Client with auto-discovery and handoff support
     const customWs = urlParams.get('ws') || undefined;
@@ -79,13 +182,14 @@ class BlobOfficeApp {
       (status) => {
         if (status === 'connected') {
           this.wsDot.className = 'dot connected';
-          this.wsLabel.textContent = 'live sync (connected)';
+          this.wsLabel.textContent = `live sync (${room || 'connected'})`;
         } else if (status === 'reconnecting') {
           this.wsDot.className = 'dot';
-          this.wsLabel.textContent = 'simulator mode (standby)';
+          this.wsLabel.textContent = 'reconnecting to telemetry...';
         }
       },
       {
+        room,
         onHandoff: (h) => {
           this.triggerHandoff(h.from_agent, h.to_agent, h.payload_label, h.sender_message, h.receiver_message);
         },
@@ -104,11 +208,35 @@ class BlobOfficeApp {
           const mapped = mapState[state] || 'idle';
           this.simulator.triggerAction(agentId, mapped, msg);
         },
+        onLog: (log) => {
+          const src = (log.source || '').toUpperCase();
+          const msg = log.message || '';
+          const msgL = msg.toLowerCase();
+
+          if (src.includes('STOCK')) {
+            if (msg.includes('Render completed')) {
+              const fileMatch = msg.match(/STK_[\w\d_]+\.(?:png|jpg)/i);
+              const fn = fileMatch ? fileMatch[0] : 'aset';
+              this.simulator.triggerAction('flow-automator', 'running', `Render selesai: ${fn}`);
+            } else if (msg.includes('Ingesting prompt')) {
+              const idMatch = msg.match(/\[(STK_[\w\d_]+)\]/i);
+              const pid = idMatch ? idMatch[1] : 'prompt';
+              this.simulator.triggerAction('flow-automator', 'running', `Prompting Imagen [${pid}]`);
+            } else if (msgL.includes('upscal')) {
+              this.simulator.triggerAction('cloud-upscaler', 'running', 'Upscaling ke 16.7MP (ESRGAN)...');
+            } else if (msgL.includes('iptc') || msgL.includes('keyword')) {
+              this.simulator.triggerAction('iptc-curator', 'editing', 'Injeksi metadata via Exiftool...');
+            } else if (msgL.includes('sftp')) {
+              this.simulator.triggerAction('sftp-dispatcher', 'running', 'Mengunggah ke Adobe Stock SFTP...');
+            } else if (msgL.includes('batch') || msgL.includes('flow')) {
+              this.simulator.triggerAction('flow-automator', 'running', 'Menjalankan batch Google Flow CDP...');
+            }
+          }
+        },
       }
     );
 
     this.wsClient.connect();
-    this.simulator.start();
 
     // Expose for embedding & test access
     if (typeof window !== 'undefined') {

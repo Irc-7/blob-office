@@ -4,21 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Blob Office — OpenCode Session Visualizer</title>
+    <title>Blob Office — Multi-Agent Character Visualizer</title>
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
     <div id="no-agents">
-      <div class="big">🏢</div>
-      <div>Waiting for OpenCode sessions…</div>
-      <div style="font-size: 11px; color: #1e1e3a">Start a session in OpenCode or interact via controller</div>
+      <div class="big">⚡</div>
+      <div>Connecting to Realtime Telemetry Stream…</div>
+      <div style="font-size: 11px; color: #64748b">Listening for active multi-agent pipeline coordination</div>
     </div>
 
     <div id="status-bar">
       <div class="dot" id="ws-dot"></div>
       <span id="ws-label">connecting…</span>
       <span style="margin-left: auto" class="count" id="agent-count"></span>
-      <span>ws://localhost:2727/ws</span>
+      <span id="ws-endpoint">Telemetry Gateway</span>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

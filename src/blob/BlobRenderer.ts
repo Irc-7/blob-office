@@ -338,8 +338,6 @@ export class BlobRenderer {
 
   public drawSpeechBubble(x: number, y: number, text: string | undefined, hue: number, alpha: number, isSub: boolean = false): void {
     if (!text || !text.trim()) return;
-    // Don't render idle/standby technical notes as active dialogue speech bubbles
-    if (text.toLowerCase().startsWith('standby')) return;
     const p = this.p;
     p.push();
     const textSize = isSub ? 9 : 11;
