@@ -11,6 +11,8 @@ describe('BlobModel and Status Configuration', () => {
       expect(STATUS_CFG[st].opacity).toBeGreaterThan(100);
       expect(STATUS_CFG[st].label).toBeDefined();
     }
+    // Idle must be peaceful without active ring
+    expect(STATUS_CFG.idle.ring).toBe(false);
   });
 
   it('should verify One Dark theme and code snippets', () => {

@@ -329,11 +329,7 @@ export class BlobRenderer {
         break;
       }
       case 'idle': {
-        if (Math.sin(now * 0.5 + sp.fiddlePhase) > 0.85) {
-          p.textSize(10);
-          p.fill(255, 255, 200, alpha * 0.6);
-          p.text('✨', objX + Math.sin(now * 3) * 8, objY - 10);
-        }
+        // Pure calm idle: no props, no fake particles. Blob rests peacefully at desk.
         break;
       }
     }
@@ -342,6 +338,8 @@ export class BlobRenderer {
 
   public drawSpeechBubble(x: number, y: number, text: string | undefined, hue: number, alpha: number, isSub: boolean = false): void {
     if (!text || !text.trim()) return;
+    // Don't render idle/standby technical notes as active dialogue speech bubbles
+    if (text.toLowerCase().startsWith('standby')) return;
     const p = this.p;
     p.push();
     const textSize = isSub ? 9 : 11;
