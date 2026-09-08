@@ -19,7 +19,10 @@ Setiap sesi dan agen dirender sebagai karakter blob membal (*spring physics*) de
   - ❌ **Error:** Mata silang `X_X`, getaran cepat, dan kilatan petir.
   - 💤 **Idle:** Kedipan tenang dan pernapasan halus saat sesi siaga.
 - **Subagent Orbiting:** Sub-proses atau sub-agent mini (skala 60%) berputar mengorbit agen induk dengan jalur konektor visual.
-- **Dual Mode:** Otomatis mendengarkan WebSocket OpenCode (`ws://localhost:2727/ws`), dengan simulator bawaan & panel kontrol interaktif jika backend belum aktif.
+- **Inter-Agent Pipeline Handoff Beams:** Sinar laser energi melengkung (*curved glowing bezier beam*) dengan paket data bercahaya dan label payload (`Raw WebP`, `16.7MP JPEG`, dll.) yang mengalir antar-agen saat tugas diserahterimakan, lengkap dengan dialog operan tugas.
+- **Tata Letak Adaptif 4-Kuadran:** Distribusi spasial dinamis mengikuti aspek rasio kanvas lebar untuk mencegah agen dan balon dialog saling bertabrakan atau berhimpitan.
+- **Dynamic Telemetry & Embed Mode:** Auto-discovery WebSocket (`ws://` / `wss://`), scoping room dinamis via query param `?room=...`, dan mode sematan bersih (`?hideControl=true` atau iframe detection) tanpa interupsi controller demo.
+- **Dual Mode:** Otomatis mendengarkan WebSocket OpenCode / Hermes Telemetry, dengan simulator bawaan & panel kontrol interaktif jika backend belum aktif.
 
 ---
 

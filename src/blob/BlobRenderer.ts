@@ -6,6 +6,7 @@ import {
   ONE_DARK,
   CODE_SNIPPETS,
   easeInOutCubic,
+  HandoffPacket,
 } from './BlobModel';
 
 export class BlobRenderer {
@@ -34,16 +35,22 @@ export class BlobRenderer {
 
   public calculateRadialPos(agentIndex: number, totalAgents: number, W: number, H: number): [number, number] {
     const centerX = W / 2;
-    const centerY = (H - 30) / 2;
-    const minRadius = 80;
-    const radiusPerAgent = 45;
-    const maxRadius = Math.min(W, H - 30) / 2 - 60;
-    const radius = Math.min(minRadius + totalAgents * radiusPerAgent, maxRadius);
-    const angleStep = (Math.PI * 2) / Math.max(totalAgents, 1);
-    const angle = agentIndex * angleStep;
+    const centerY = (H - 35) / 2;
+    const rx = Math.max(160, Math.min(W * 0.38, W / 2 - 110));
+    const ry = Math.max(110, Math.min((H - 45) * 0.38, (H - 45) / 2 - 65));
 
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius * 0.7; // elliptical perspective
+    let angle: number;
+    if (totalAgents === 4) {
+      // 4-Quadrant diagonal layout (top-left, top-right, bottom-right, bottom-left)
+      const quadrantAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.25, Math.PI * 0.75];
+      angle = quadrantAngles[agentIndex % 4];
+    } else {
+      const angleStep = (Math.PI * 2) / Math.max(totalAgents, 1);
+      angle = agentIndex * angleStep - Math.PI / 2;
+    }
+
+    const x = centerX + Math.cos(angle) * rx;
+    const y = centerY + Math.sin(angle) * ry;
     return [x, y];
   }
 
@@ -408,5 +415,68 @@ export class BlobRenderer {
     p.fill(dc[0], dc[1], dc[2], 230);
     p.ellipse(bx - 6, by + baseBh / 2, 5, 5);
     p.pop();
+  }
+
+  public drawHandoffBeams(
+    p: p5,
+    handoffs: HandoffPacket[],
+    positions: Record<string, { x: number; y: number; color: number }>
+  ): HandoffPacket[] {
+    const now = Date.now();
+    return handoffs.filter((h) => {
+      const elapsed = now - h.startTime;
+      const progress = Math.min(elapsed / h.duration, 1.0);
+      const fromPos = positions[h.fromId];
+      const toPos = positions[h.toId];
+      if (!fromPos || !toPos) return elapsed < h.duration;
+
+      // Curved beam control point
+      const midX = (fromPos.x + toPos.x) / 2;
+      const midY = (fromPos.y + toPos.y) / 2 - 45;
+
+      const alpha = Math.sin(progress * Math.PI) * 220;
+      p.push();
+      p.noFill();
+      p.stroke(p.color(`hsla(${fromPos.color}, 85%, 65%, ${alpha / 255})`));
+      p.strokeWeight(2.5);
+
+      // Draw quadratic bezier curved energy beam
+      p.beginShape();
+      for (let step = 0; step <= 20; step++) {
+        const u = step / 20;
+        const bx = (1 - u) * (1 - u) * fromPos.x + 2 * (1 - u) * u * midX + u * u * toPos.x;
+        const by = (1 - u) * (1 - u) * fromPos.y + 2 * (1 - u) * u * midY + u * u * toPos.y;
+        p.vertex(bx, by);
+      }
+      p.endShape();
+
+      // Traveling data packet orb
+      const u = progress;
+      const px = (1 - u) * (1 - u) * fromPos.x + 2 * (1 - u) * u * midX + u * u * toPos.x;
+      const py = (1 - u) * (1 - u) * fromPos.y + 2 * (1 - u) * u * midY + u * u * toPos.y;
+
+      p.fill(255, 255, 255, alpha);
+      p.noStroke();
+      p.circle(px, py, 9);
+      p.fill(p.color(`hsla(${fromPos.color}, 90%, 60%, ${alpha / 255})`));
+      p.circle(px, py, 16);
+
+      // Floating payload badge
+      if (h.label) {
+        p.textSize(9);
+        p.textAlign(p.CENTER, p.CENTER);
+        const lw = p.textWidth(h.label) + 12;
+        p.fill(10, 15, 30, alpha * 0.9);
+        p.stroke(p.color(`hsla(${fromPos.color}, 70%, 55%, ${alpha / 255})`));
+        p.strokeWeight(1);
+        p.rect(px - lw / 2, py - 20, lw, 16, 4);
+        p.noStroke();
+        p.fill(220, 240, 255, alpha);
+        p.text(h.label, px, py - 12);
+      }
+
+      p.pop();
+      return elapsed < h.duration;
+    });
   }
 }

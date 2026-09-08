@@ -28,6 +28,24 @@ export interface StatusConfig {
   ring: boolean;
 }
 
+export interface HandoffPacket {
+  fromId: string;
+  toId: string;
+  label: string;
+  startTime: number;
+  duration: number;
+  senderMessage?: string;
+  receiverMessage?: string;
+}
+
+export interface PipelineHandoffEvent {
+  from_agent: string;
+  to_agent: string;
+  payload_label: string;
+  sender_message?: string;
+  receiver_message?: string;
+}
+
 export const STATUS_CFG: Record<BlobAgentStatus, StatusConfig> = {
   idle:     { pulse: 0.4, radius: 22, opacity: 160, label: "💤", ring: false },
   thinking: { pulse: 1.8, radius: 26, opacity: 230, label: "🧠", ring: true  },

@@ -1,5 +1,5 @@
 import p5 from 'p5';
-import { BlobAgentData, BlobSprite, STATUS_CFG } from './blob/BlobModel';
+import { BlobAgentData, BlobSprite, STATUS_CFG, HandoffPacket } from './blob/BlobModel';
 import { BlobRenderer } from './blob/BlobRenderer';
 import { BlobSimulator } from './blob/BlobSimulator';
 import { BlobWebSocketClient } from './blob/BlobWebSocketClient';
@@ -15,10 +15,40 @@ class BlobOfficeApp {
   private wsLabel!: HTMLElement;
   private agentCountEl!: HTMLElement;
   private noAgentsEl!: HTMLElement;
-  private controlPanelEl!: HTMLElement;
+  private controlPanelEl?: HTMLElement;
+
+  private activeHandoffs: HandoffPacket[] = [];
+  private agentPositionsMap: Record<string, { x: number; y: number; color: number }> = {};
 
   public getP5(): p5 {
     return this.p5Instance;
+  }
+
+  public triggerHandoff(
+    fromId: string,
+    toId: string,
+    label: string,
+    senderMsg?: string,
+    receiverMsg?: string
+  ): void {
+    this.activeHandoffs.push({
+      fromId,
+      toId,
+      label,
+      startTime: Date.now(),
+      duration: 3500,
+      senderMessage: senderMsg,
+      receiverMessage: receiverMsg,
+    });
+
+    if (senderMsg && this.simulator) {
+      this.simulator.triggerAction(fromId, 'editing', senderMsg);
+    }
+    setTimeout(() => {
+      if (receiverMsg && this.simulator) {
+        this.simulator.triggerAction(toId, 'running', receiverMsg);
+      }
+    }, 1200);
   }
 
   public init(): void {
@@ -27,32 +57,63 @@ class BlobOfficeApp {
     this.agentCountEl = document.getElementById('agent-count')!;
     this.noAgentsEl = document.getElementById('no-agents')!;
 
-    this.renderControlPanel();
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const isEmbedded = typeof window !== 'undefined' && (window.self !== window.top || urlParams.get('hideControl') === 'true');
+
+    if (!isEmbedded) {
+      this.renderControlPanel();
+    }
 
     // 1. Setup Simulator
     this.simulator = new BlobSimulator((agentsList) => {
       this.updateAgentSnapshot(agentsList);
     });
 
-    // 2. Setup OpenCode WebSocket Client
+    // 2. Setup WebSocket Client with auto-discovery and handoff support
+    const customWs = urlParams.get('ws') || undefined;
     this.wsClient = new BlobWebSocketClient(
-      'ws://localhost:2727/ws',
+      customWs,
       (agentsList) => {
         this.updateAgentSnapshot(agentsList);
       },
       (status) => {
         if (status === 'connected') {
           this.wsDot.className = 'dot connected';
-          this.wsLabel.textContent = 'connected (OpenCode :2727)';
+          this.wsLabel.textContent = 'live sync (connected)';
         } else if (status === 'reconnecting') {
           this.wsDot.className = 'dot';
-          this.wsLabel.textContent = 'simulator mode (listening :2727)';
+          this.wsLabel.textContent = 'simulator mode (standby)';
         }
+      },
+      {
+        onHandoff: (h) => {
+          this.triggerHandoff(h.from_agent, h.to_agent, h.payload_label, h.sender_message, h.receiver_message);
+        },
+        onAgentStateChange: (agentId, state, msg) => {
+          const mapState: Record<string, any> = {
+            EXECUTING: 'running',
+            TOOL_CALL: 'editing',
+            THINKING: 'thinking',
+            READING: 'reading',
+            ERROR: 'error',
+            WAITING: 'waiting',
+            PENDING: 'waiting',
+            IDLE: 'idle',
+            READY: 'idle',
+          };
+          const mapped = mapState[state] || 'idle';
+          this.simulator.triggerAction(agentId, mapped, msg);
+        },
       }
     );
 
     this.wsClient.connect();
     this.simulator.start();
+
+    // Expose for embedding & test access
+    if (typeof window !== 'undefined') {
+      (window as any).__blobOffice = this;
+    }
 
     // 3. Initialize p5.js Sketch
     this.p5Instance = new p5((p: p5) => {
@@ -261,6 +322,7 @@ class BlobOfficeApp {
 
       // Name tag with folder & title
       this.renderer.drawNameTag(drawX, drawY, agent.folder, agent.title, agent.color, agent.status);
+      this.agentPositionsMap[agent.id] = { x: drawX, y: drawY + bobY, color: agent.color };
     }
 
     // Render Subagents Orbiting
@@ -328,6 +390,9 @@ class BlobOfficeApp {
       // Speech bubble subagent
       this.renderer.drawSpeechBubble(sprite.x, sprite.y, sub.message, subHue, alpha, true);
     }
+
+    // Render Curved Pipeline Handoff Laser Beams & Travelling Packets
+    this.activeHandoffs = this.renderer.drawHandoffBeams(p, this.activeHandoffs, this.agentPositionsMap);
   }
 
   private renderControlPanel(): void {

@@ -86,6 +86,14 @@ export class BlobSimulator {
     return Array.from(this.agents.values());
   }
 
+  public setAgents(agentsList: BlobAgentData[]): void {
+    this.agents.clear();
+    for (const a of agentsList) {
+      this.agents.set(a.id, a);
+    }
+    this.broadcast();
+  }
+
   public triggerAction(agentId: string, status: BlobAgentStatus, message?: string): void {
     const ag = this.agents.get(agentId);
     if (ag) {
